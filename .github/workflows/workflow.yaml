@@ -32,7 +32,7 @@ jobs:
           path: infrastructure
           token: ${{ secrets.INFRASTRUCTURE_PAT }}
           commit-message: Updating testapp-api tag to ${{ github.sha }}
-          branch: Update testapp-api image to ${{ github.sha }}
+          branch: update-testapp-api-tag-to-${{ github.sha }}
 
       - name: Cleanup
         if: always()
