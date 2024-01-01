@@ -1,0 +1,42 @@
+name: Build Testapp API and publish
+run-name: Run
+on: [push]
+jobs:
+  Build-Testapp-And-Publish:
+    runs-on: self-hosted
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          path: testapp-api
+      - name: Check out infrastructure code
+        uses: actions/checkout@v4
+        with:
+          repository: ragelberries/infrastructure
+          path: infrastructure
+      - name: Build image
+        run: podman build -t testapp-api ./testapp-api
+      - name: Tag image
+        run: podman tag testapp-api ${{ vars.CONTAINER_REGISTRY }}/testapp-api:${{ github.sha }}
+      - name: Tag image latest
+        run: podman tag testapp-api ${{ vars.CONTAINER_REGISTRY }}/testapp-api:latest
+      - name: Push image
+        run: podman push ${{ vars.CONTAINER_REGISTRY }}/testapp-api:${{ github.sha }}
+      - name: Push image latest
+        run: podman push ${{ vars.CONTAINER_REGISTRY }}/testapp-api:latest
+      - name: Change infrastructure repo testapp tag
+        run: sed -i "s/testapp-api:[0-9a-f]\{40\}/testapp-api:${{ github.sha }}/gI" infrastructure/testapp.yaml
+      - name: Create pull request in infrastructure
+        uses: peter-evans/create-pull-request@v5
+        with:
+          path: infrastructure
+          token: ${{ secrets.INFRASTRUCTURE_PAT }}
+          commit-message: Updating testapp-api tag to ${{ github.sha }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          ls -la ./
